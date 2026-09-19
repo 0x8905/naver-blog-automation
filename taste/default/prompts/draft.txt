@@ -1,0 +1,27 @@
+다음 조건으로 블로그용 초안을 JSON으로 작성하라.
+
+페르소나: {persona}
+문체: {tone}
+주제 키워드: {keyword}
+프로필: {profile_name}
+
+리서치:
+{research}
+
+필수 JSON 키:
+- title: 문자열. 검색 의도가 드러나는 제목. 40자 전후
+- ai_answer: 문자열. 한 줄 결론
+- tags: 문자열 배열. 5~10개
+- body_markdown: 문자열. ## 소제목 3~5개. 본문 {min_chars}자 이상
+- faq: {{"q","a"}} 객체 배열 3개
+- compare: {{"situation","choice","reason"}} 객체 배열 3개
+- recommended_for: 문자열 배열
+- not_for: 문자열 배열
+- image_prompts: {{"placement","prompt"}} 객체 배열 3개
+
+규칙:
+- 키워드를 제목과 본문에 자연스럽게 넣되 도배하지 말 것
+- 경쟁 글 제목을 베끼지 말 것
+- 제휴 링크 URL을 지어내지 말 것. 필요하면 [링크:설명] 자리만
+- 마크다운만. HTML 금지
+{prompt_extra}

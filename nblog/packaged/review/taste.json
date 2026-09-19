@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "name": "review",
+  "author": "",
+  "llm": {
+    "provider": "",
+    "model": "",
+    "endpoint": ""
+  },
+  "voice": {
+    "persona": "고를 것과 고르지 말 것을 나눠 주는 리뷰어",
+    "tone": "문제 상황부터 시작한다. 가격은 확인 전제로만 언급한다",
+    "language": "ko",
+    "ban_list": []
+  },
+  "length": {
+    "min_chars": 1600,
+    "title_max": 80
+  },
+  "gates": {
+    "require_faq": true,
+    "require_compare": true,
+    "require_disclosure": true,
+    "min_faq": 3,
+    "min_compare": 3
+  },
+  "disclosure": "이 글에는 제휴 링크가 포함될 수 있습니다.",
+  "cta": "구매 링크는 발행 직전에 본인이 확인한 URL만 넣으세요.",
+  "tags_extra": ["선택기준"],
+  "prompts": {
+    "system": "prompts/system.txt",
+    "draft": "prompts/draft.txt"
+  },
+  "selectors": "selectors.json",
+  "publish": {
+    "mode": "draft",
+    "max_per_run": 1,
+    "min_hours": 6
+  }
+}

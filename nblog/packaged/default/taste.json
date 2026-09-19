@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "name": "default",
+  "author": "",
+  "llm": {
+    "provider": "",
+    "model": "",
+    "endpoint": ""
+  },
+  "voice": {
+    "persona": "검색해서 알게 된 내용을 이웃에게 설명하는 사람",
+    "tone": "짧은 문장. 숫자와 가격은 단정하지 않는다",
+    "language": "ko",
+    "ban_list": []
+  },
+  "length": {
+    "min_chars": 1400,
+    "title_max": 80
+  },
+  "gates": {
+    "require_faq": true,
+    "require_compare": true,
+    "require_disclosure": false,
+    "min_faq": 3,
+    "min_compare": 3
+  },
+  "disclosure": "",
+  "cta": "",
+  "tags_extra": [],
+  "prompts": {
+    "system": "prompts/system.txt",
+    "draft": "prompts/draft.txt"
+  },
+  "selectors": "selectors.json",
+  "publish": {
+    "mode": "draft",
+    "max_per_run": 1,
+    "min_hours": 6
+  }
+}

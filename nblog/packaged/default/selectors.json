@@ -1,0 +1,32 @@
+{
+  "popup": [
+    "button:has-text('닫기')",
+    "button:has-text('확인')",
+    "button.se-popup-button-cancel",
+    "button.se-help-panel-close-button"
+  ],
+  "title": [
+    ".se-section-documentTitle",
+    ".se-title-text",
+    "[contenteditable='true'][data-placeholder*='제목']",
+    "div.se-section-documentTitle p"
+  ],
+  "body": [
+    "div.se-section-text div[contenteditable='true']",
+    "div[contenteditable='true'][role='textbox']",
+    ".se-module.se-module-text"
+  ],
+  "save_draft": [
+    "button:has-text('저장')",
+    "button:has-text('임시저장')",
+    "button.se-toolbar-save-button"
+  ],
+  "publish": [
+    "button:has-text('발행')",
+    "button.publish_btn",
+    "button:has-text('글쓰기')"
+  ],
+  "publish_confirm": [
+    ".layer_popup button:has-text('발행')"
+  ]
+}
