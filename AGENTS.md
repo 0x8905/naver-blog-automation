@@ -34,6 +34,10 @@ nblog taste use mypack
 4. Publish stays opt-in. Default is local files + Naver draft. Do not change the core to auto-public or raise `max_per_run` above 1.
 5. Before you finish: `python -m unittest discover -s tests -v` (offline) and one line in that pack’s `NOTES.md`.
 
+## If your user asks for “fully automatic”
+
+Read `README.md` → “Automation status” first and tell them what is manual today and why. The loop (scheduler, keyword feed, notify-on-failure) is a script **outside** `nblog/`. Do not add a scheduler, a retry loop, or an auto-approve path to the core.
+
 ## First five minutes
 
 1. `nblog taste show`

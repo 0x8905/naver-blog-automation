@@ -237,7 +237,7 @@ def cmd_publish(args: argparse.Namespace) -> int:
 def cmd_doctor(_args: argparse.Namespace) -> int:
     from nblog import naver_api
     from nblog.llm import PROVIDERS
-    from nblog.publisher import profile_dir
+    from nblog.publisher import browser_channel, profile_dir
 
     taste = load_taste()
     print(f"nblog {__version__}")
@@ -254,6 +254,7 @@ def cmd_doctor(_args: argparse.Namespace) -> int:
     print(f"NAVER search   {'설정됨' if naver_api.configured() else '없음(리서치 생략)'}")
     print(f"NAVER_BLOG_ID  {os.environ.get('NAVER_BLOG_ID') or '(없음)'}")
     print(f"chrome profile {profile_dir()}")
+    print(f"browser        {browser_channel() or 'chromium (번들)'}")
     try:
         from playwright.sync_api import sync_playwright  # noqa: F401
 

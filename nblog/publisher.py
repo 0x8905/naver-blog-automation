@@ -41,6 +41,19 @@ def profile_dir() -> Path:
     return path
 
 
+def browser_channel() -> str:
+    """빈 값이면 Playwright 번들 Chromium. chrome·msedge는 설치된 브라우저."""
+    return (os.environ.get("NBLOG_BROWSER_CHANNEL") or "").strip()
+
+
+def _launch_kwargs() -> dict[str, Any]:
+    kwargs: dict[str, Any] = {"user_data_dir": str(profile_dir()), "headless": False}
+    channel = browser_channel()
+    if channel:
+        kwargs["channel"] = channel
+    return kwargs
+
+
 def screenshot_dir() -> Path:
     path = Path.cwd() / "screenshots"
     path.mkdir(parents=True, exist_ok=True)
@@ -110,11 +123,7 @@ def login() -> None:
     blog_id = os.environ.get("NAVER_BLOG_ID") or ""
     start = f"https://blog.naver.com/{blog_id}" if blog_id else "https://nid.naver.com/nidlogin.login"
     with _playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            user_data_dir=str(profile_dir()),
-            headless=False,
-            channel="chrome",
-        )
+        context = p.chromium.launch_persistent_context(**_launch_kwargs())
         page = context.pages[0] if context.pages else context.new_page()
         page.goto(start, wait_until="domcontentloaded")
         print("브라우저에서 네이버에 로그인한 뒤 이 터미널에서 Enter를 누르세요.")
@@ -149,11 +158,7 @@ def publish(
     url = f"https://blog.naver.com/{blog_id}/postwrite"
     shot = screenshot_dir() / f"publish-{int(time.time())}.png"
     with _playwright() as p:
-        context = p.chromium.launch_persistent_context(
-            user_data_dir=str(profile_dir()),
-            headless=False,
-            channel="chrome",
-        )
+        context = p.chromium.launch_persistent_context(**_launch_kwargs())
         page = context.pages[0] if context.pages else context.new_page()
         try:
             page.goto(url, wait_until="domcontentloaded", timeout=60_000)
@@ -210,7 +215,7 @@ def _fill_title(page: Any, title: str, selectors: list[str]) -> None:
             continue
         el = loc.first
         el.click()
-        page.keyboard.press("Meta+A")
+        page.keyboard.press("ControlOrMeta+A")
         page.keyboard.type(title, delay=20)
         return
     raise PublishError("제목 입력란을 찾지 못했습니다. selectors.json의 title을 고치세요.")
