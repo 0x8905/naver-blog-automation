@@ -93,6 +93,122 @@ class ClickPublishTest(unittest.TestCase):
         self.assertEqual(page.clicked, ["pub", "confirm"])
 
 
+class _RecKeys:
+    def __init__(self):
+        self.events: list[tuple[str, str]] = []
+
+    def insert_text(self, text):
+        self.events.append(("text", text))
+
+    def press(self, combo):
+        self.events.append(("press", combo))
+
+
+class _BodyPage(_Page):
+    def __init__(self):
+        super().__init__(present={"body"})
+        self.keyboard = _RecKeys()
+
+    def wait_for_timeout(self, ms):
+        self.keyboard.events.append(("wait", ms))
+
+
+def _keys_only(events):
+    return [e for e in events if e[0] != "wait"]
+
+
+class FillBodyTest(unittest.TestCase):
+    def test_line_breaks_become_enter_presses(self):
+        # insert_text 한 번에 넣으면 SmartEditor ONE 이 줄바꿈을 버린다(2026-09-19 실측).
+        page = _BodyPage()
+        publisher._fill_body(page, "첫 줄\n\n## 소제목\n끝", ["body"])
+        self.assertEqual(
+            _keys_only(page.keyboard.events),
+            [
+                ("text", "첫 줄"),
+                ("press", "Enter"),
+                ("press", "Enter"),
+                ("text", "## 소제목"),
+                ("press", "Enter"),
+                ("text", "끝"),
+            ],
+        )
+
+    def test_every_key_event_is_followed_by_a_pause(self):
+        # 쉬지 않고 넣으면 긴 글 중간부터 문단이 사라진다(2026-09-19 실측, 80ms 대기로 해결).
+        page = _BodyPage()
+        publisher._fill_body(page, "\n".join(f"줄 {i}" for i in range(30)), ["body"])
+        events = page.keyboard.events + [("end", 0)]
+        for i, (kind, _v) in enumerate(events[:-1]):
+            if kind in ("text", "press"):
+                nxt = events[i + 1]
+                self.assertEqual(nxt[0], "wait", f"event {i} {kind} not followed by wait")
+                self.assertGreaterEqual(nxt[1], publisher.TYPE_PAUSE_MS)
+
+    def test_no_text_contains_newline(self):
+        page = _BodyPage()
+        publisher._fill_body(page, "a\r\nb\n", ["body"])
+        texts = [v for k, v in page.keyboard.events if k == "text"]
+        self.assertTrue(all("\n" not in t and "\r" not in t for t in texts), texts)
+
+
+class _TitleEl:
+    def __init__(self, page):
+        self.page, self.first = page, self
+
+    def count(self):
+        return 1
+
+    def click(self, **_kw):
+        pass
+
+    def inner_text(self):
+        return self.page.text
+
+
+class _TitleKeys:
+    def __init__(self, page):
+        self.page = page
+
+    def press(self, combo):
+        if combo == "ControlOrMeta+A":
+            self.page.selected = True
+
+    def insert_text(self, text):
+        self.page.attempts += 1
+        # 처음 drops 번은 첫 글자를 잃는다(실측: 「USB-C」→「SB-C」)
+        dropped = text[1:] if self.page.attempts <= self.page.drops else text
+        self.page.text = dropped if self.page.selected else self.page.text + dropped
+        self.page.selected = False
+
+    def type(self, text, delay=0):
+        self.insert_text(text)
+
+
+class _TitlePage:
+    def __init__(self, drops):
+        self.drops, self.attempts, self.text, self.selected = drops, 0, "제목", False
+        self.keyboard = _TitleKeys(self)
+
+    def locator(self, _s):
+        return _TitleEl(self)
+
+    def wait_for_timeout(self, _ms):
+        pass
+
+
+class FillTitleTest(unittest.TestCase):
+    def test_retries_when_first_char_dropped(self):
+        page = _TitlePage(drops=1)
+        publisher._fill_title(page, "USB-C 케이블", ["t"])
+        self.assertEqual(page.text, "USB-C 케이블")
+
+    def test_raises_when_title_never_matches(self):
+        page = _TitlePage(drops=99)
+        with self.assertRaises(publisher.PublishError):
+            publisher._fill_title(page, "USB-C 케이블", ["t"])
+
+
 class _Stop(Exception):
     pass
 

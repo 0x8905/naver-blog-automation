@@ -35,6 +35,15 @@ class SelectorPackTest(unittest.TestCase):
             self.assertNotIn("documentTitle", sel["body"][0], pack.name)
             self.assertFalse(set(sel["title"]) & set(sel["body"]), pack.name)
 
+    def test_resume_popup_is_cancelled_not_confirmed(self):
+        # 「작성 중인 글이 있습니다. 이어서 작성하시겠습니까?」 에서 확인을 누르면
+        # 예전 내용 위에 새 글이 섞인다. 취소가 먼저여야 한다.
+        for pack in PACKS:
+            popup = _load(pack)["popup"]
+            cancel = next(i for i, s in enumerate(popup) if "cancel" in s)
+            confirm = [i for i, s in enumerate(popup) if "확인" in s or "confirm" in s]
+            self.assertTrue(all(cancel < i for i in confirm), pack.name)
+
     def test_repo_default_matches_packaged_default(self):
         self.assertEqual(_load(ROOT / "taste" / "default"), _load(PACKAGED_DIR / "default"))
 

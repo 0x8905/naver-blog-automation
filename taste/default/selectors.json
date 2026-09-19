@@ -1,9 +1,9 @@
 {
   "popup": [
-    "button:has-text('닫기')",
-    "button:has-text('확인')",
     "button.se-popup-button-cancel",
-    "button.se-help-panel-close-button"
+    "button.se-help-panel-close-button",
+    "button:has-text('닫기')",
+    "button:has-text('확인')"
   ],
   "title": [
     ".se-section-documentTitle .se-module-text",

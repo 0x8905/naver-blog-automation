@@ -19,6 +19,10 @@ class PublishError(RuntimeError):
     pass
 
 
+# 입력 한 번마다 쉬는 시간. 쉬지 않으면 긴 글 중간부터 문단이 사라진다(2026-09-19 실측).
+TYPE_PAUSE_MS = 80
+
+
 def load_selectors(taste: Taste | None = None) -> dict[str, Any]:
     pack = taste or load_taste()
     return json.loads(pack.file(pack.selectors_rel).read_text(encoding="utf-8"))
@@ -225,10 +229,20 @@ def _fill_title(page: Any, title: str, selectors: list[str]) -> None:
             continue
         el = loc.first
         el.click()
-        page.keyboard.press("ControlOrMeta+A")
-        page.keyboard.type(title, delay=20)
-        return
+        page.wait_for_timeout(300)
+        # 포커스가 늦으면 첫 글자가 빠진다(실측). 넣고 읽어서 확인, 다르면 한 번 더.
+        for _ in range(2):
+            page.keyboard.press("ControlOrMeta+A")
+            page.keyboard.insert_text(title)
+            page.wait_for_timeout(300)
+            if _plain(el.inner_text()) == title.strip():
+                return
+        raise PublishError(f"제목이 그대로 들어가지 않았습니다: {_plain(el.inner_text())!r}")
     raise PublishError("제목 입력란을 찾지 못했습니다. selectors.json의 title을 고치세요.")
+
+
+def _plain(text: str) -> str:
+    return (text or "").replace("\u200b", "").strip()
 
 
 def _fill_body(page: Any, body: str, selectors: list[str]) -> None:
@@ -238,7 +252,15 @@ def _fill_body(page: Any, body: str, selectors: list[str]) -> None:
             continue
         loc.first.click()
         page.wait_for_timeout(300)
-        page.keyboard.insert_text(body)
+        # 한 번에 insert_text 하면 에디터가 줄바꿈을 버린다. 줄마다 Enter로 문단을 나눈다.
+        lines = body.replace("\r\n", "\n").replace("\r", "\n").rstrip("\n").split("\n")
+        for idx, line in enumerate(lines):
+            if idx:
+                page.keyboard.press("Enter")
+                page.wait_for_timeout(TYPE_PAUSE_MS)
+            if line:
+                page.keyboard.insert_text(line)
+                page.wait_for_timeout(TYPE_PAUSE_MS)
         return
     raise PublishError("본문 입력란을 찾지 못했습니다. selectors.json의 body를 고치세요.")
 

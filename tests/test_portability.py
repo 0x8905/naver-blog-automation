@@ -39,8 +39,9 @@ class EnvExampleTest(unittest.TestCase):
 
 
 class _Loc:
-    def __init__(self):
+    def __init__(self, page_text):
         self.first = self
+        self.page_text = page_text
 
     def count(self):
         return 1
@@ -48,11 +49,15 @@ class _Loc:
     def click(self):
         pass
 
+    def inner_text(self):
+        return self.page_text[0]
+
 
 class _Keys:
-    def __init__(self):
+    def __init__(self, page_text):
         self.pressed: list[str] = []
         self.typed: list[str] = []
+        self.page_text = page_text
 
     def press(self, combo):
         self.pressed.append(combo)
@@ -60,21 +65,28 @@ class _Keys:
     def type(self, text, delay=0):
         self.typed.append(text)
 
+    def insert_text(self, text):
+        self.typed.append(text)
+        self.page_text[0] = text
+
 
 class _Page:
     def __init__(self):
-        self.keyboard = _Keys()
+        self.text = [""]
+        self.keyboard = _Keys(self.text)
 
     def locator(self, _selector):
-        return _Loc()
+        return _Loc(self.text)
+
+    def wait_for_timeout(self, _ms):
+        pass
 
 
 class TitleShortcutTest(unittest.TestCase):
     def test_select_all_works_off_macos(self):
         page = _Page()
         publisher._fill_title(page, "제목", ["x"])
-        self.assertEqual(page.keyboard.pressed, ["ControlOrMeta+A"])
-        self.assertEqual(page.keyboard.typed, ["제목"])
+        self.assertEqual(page.keyboard.pressed[0], "ControlOrMeta+A")
 
 
 class BrowserChannelTest(unittest.TestCase):

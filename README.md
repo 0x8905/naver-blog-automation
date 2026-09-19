@@ -6,6 +6,16 @@ There is no official write API (it ended in 2020). This tool researches with the
 
 Not affiliated with Naver. Not a spam farm.
 
+## ⚠️ Your Naver account can be restricted or banned
+
+Read this before the first `nblog publish`.
+
+- Posting through an automation tool can count as abuse under Naver's operating policy. Accounts that do it can lose search visibility (commonly called 저품질), have posts hidden, or be suspended. That can happen with the default settings of this tool, and without warning.
+- Nothing in this repo prevents a restriction or can undo one. The risk is entirely the account owner's. The authors accept no responsibility.
+- To lower the risk: keep a human in the `approve` step, post rarely, write only about things you actually know, never publish the same or near-duplicate text twice, and try it on an account you can afford to lose before you use your main one.
+
+**⚠️ 네이버 계정 제재 주의:** 자동화 도구로 글을 올리면 네이버 운영정책상 어뷰징으로 판단되어 검색 노출 제한(흔히 말하는 저품질), 게시글 비공개 처리, 계정 이용 정지를 받을 수 있습니다. 이 도구의 기본 설정으로 사용해도 예고 없이 적용될 수 있습니다. 이 도구는 제재를 막거나 되돌릴 수 없으며, 제재에 따른 책임은 전적으로 계정 소유자에게 있습니다. 잃어도 되는 계정에서 먼저 시험하고, 사람이 직접 검토한 글만 드물게 올리시기 바랍니다.
+
 **Agents:** read `AGENTS.md` first. Change `taste/` only.
 
 ## Design goal
@@ -117,10 +127,13 @@ Naver has no write API. `nblog publish` opens a real browser with Playwright, go
 
 ### Known limits
 
-- The body is inserted as plain text, so `##`, tables and `**bold**` arrive as literal Markdown characters. Line breaks are lost as well: the whole body lands in the editor as one paragraph. `data/out/<id>.html` is there for manual paste when you want formatting.
+- The body is inserted as plain text, so `##`, tables and `**bold**` arrive as literal Markdown characters. `data/out/<id>.html` is there for manual paste when you want formatting.
+- Line breaks survive: each line becomes its own paragraph. Input pauses 80 ms after every line and every Enter (`TYPE_PAUSE_MS` in `nblog/publisher.py`), so a 60-line post takes about 15 seconds. Without the pause the live editor silently dropped paragraphs from the middle of long posts.
+- The title is read back after typing and retried once. If it still does not match, `publish` exits 1. The body is **not** read back.
+- `publish` answers Naver's 「작성 중인 글이 있습니다. 이어서 작성하시겠습니까?」 prompt with **취소**. If you had unsaved work open in the Naver editor with the same browser profile, it is discarded. Save it yourself before you run `publish`.
 - Images are not uploaded. `image_prompts` are text suggestions only.
 - The browser is headed (`headless=False`). It needs a logged-in desktop session (or `xvfb` on Linux), not a bare server.
-- Tests are offline. The editor path was checked once against the live editor on 2026-09-19 (desktop Chrome, `/postwrite`, draft mode): the editor is not inside an iframe, the title and body land in the right fields, and the draft appears in Naver's temp-save list. `--public` and the publish confirm dialog have **not** been exercised. Naver changes the editor without notice, so run `nblog publish <id>` in draft mode and look at `screenshots/` before you trust it.
+- Tests are offline. The editor path was checked against the live editor on 2026-09-19 (desktop Chrome, `/postwrite`, draft mode): the editor is not inside an iframe, and a 62-line post was saved as a draft, reopened from Naver's temp-save list, and read back with the title and all 62 paragraphs identical to the source. That is one post on one account. `--public` and the publish confirm dialog have **not** been exercised. Naver changes the editor without notice, so run `nblog publish <id>` in draft mode and look at `screenshots/` before you trust it.
 
 ### Known issues
 
@@ -155,11 +168,11 @@ What you take on when you do that:
 - One post per run is clamped in the core. The gap between public posts defaults to 6 hours, but it is a setting (`publish.min_hours` in the pack, `NBLOG_MIN_PUBLISH_HOURS` in the environment), not an enforced floor. `CONTRACT.md` forbids weakening it in the core. Keeping it sane in your config is on you.
 - When Naver redirects to its login page, `publish` exits 1 with `로그인 세션 없음`. When the title, body, save or publish selector stops matching it exits 1 and tries to leave a screenshot. Both are best-effort, see Known issues. Have your scheduler notify you on a non-zero exit instead of retrying, and check the blog itself now and then.
 - Feeding keywords is your job. A text file and a line counter is enough.
-- Automated posting can get an account restricted under Naver's terms. That risk belongs to the account owner, not to this tool. The defaults are conservative for that reason.
+- Automated posting can get an account restricted or banned. See the warning at the top of this file. That risk belongs to the account owner, not to this tool. The defaults are conservative for that reason.
 
 Agents: build this loop **outside** `nblog/` (a script in your own directory or in `taste/<name>/`). Do not add a scheduler, a retry loop, or an auto-approve path to the core.
 
-한국어 요약: 네이버에는 글쓰기 API가 없어서 Playwright로 실제 브라우저를 조작합니다. 현재는 초안 작성과 검수, 에디터 입력까지 자동이고, 로그인·승인(`approve`)·공개 발행(`--public`)·키워드 선정·스케줄링은 의도적으로 수동입니다. 완전 자동으로 운용하려면 위 셸 스크립트를 본인의 스케줄러에 등록하면 되지만, 본문이 줄바꿈과 서식 없이 한 문단으로 입력되는 점, 이미지가 업로드되지 않는 점, 세션이 만료되면 다시 로그인해야 하는 점(로그인할 때 「로그인 상태 유지」를 반드시 체크해야 합니다), 실제 에디터에서는 임시저장만 확인했고 공개 발행은 아직 확인하지 않았다는 점을 먼저 확인하시기 바랍니다.
+한국어 요약: 네이버에는 글쓰기 API가 없어서 Playwright로 실제 브라우저를 조작합니다. 현재는 초안 작성과 검수, 에디터 입력까지 자동이고, 로그인·승인(`approve`)·공개 발행(`--public`)·키워드 선정·스케줄링은 의도적으로 수동입니다. 완전 자동으로 운용하려면 위 셸 스크립트를 본인의 스케줄러에 등록하면 되지만, 네이버 계정이 제재될 수 있다는 점(이 문서 맨 위의 경고), 본문이 문단은 나뉘지만 서식 없는 텍스트로 입력되는 점, 이미지가 업로드되지 않는 점, 세션이 만료되면 다시 로그인해야 하는 점(로그인할 때 「로그인 상태 유지」를 반드시 체크해야 합니다), 실제 에디터에서는 임시저장만 확인했고 공개 발행은 아직 확인하지 않았다는 점을 먼저 확인하시기 바랍니다.
 
 ## Tests
 
@@ -177,9 +190,9 @@ Built with several AI models in separate roles, directed by a human.
 | Implementation | Grok 4.6 (xhigh) |
 | Final review before publishing | Claude Fable 5.1 |
 | Independent second review (0.2.1, 0.2.2) | GPT Astra (`gpt-6-astra`, via Codex CLI) |
-| Live editor check, selector fixes (0.2.3) | Claude Opus 5 |
+| Live editor checks, selector and input fixes (0.2.3, 0.2.4) | Claude Opus 5 |
 
-The final review read every file in the tree, checked that no private infrastructure, personal identifiers or credentials were included, and ran the offline test suite. The second review was run read-only on the 0.2.1 changes and the whole tree. It confirmed the privacy check, corrected several overstatements in this README, and found core defects. Six of them were fixed in 0.2.2, each with a failing test first. It then reviewed that fix commit and caught four gaps (whitespace-only disclosure, posts approved before the release, non-atomic id reservation, two tests that passed without their guard), which were closed before the release, and what remains is listed under "Known issues". Neither review exercised the live Naver editor. In 0.2.3 a draft-mode run against the live editor found two selectors that would have typed the body into the title field and clicked a hidden 「예약 발행」 button. Both were fixed and the draft save was confirmed in Naver's temp-save list. These are reviews and one live check, not a warranty.
+The final review read every file in the tree, checked that no private infrastructure, personal identifiers or credentials were included, and ran the offline test suite. The second review was run read-only on the 0.2.1 changes and the whole tree. It confirmed the privacy check, corrected several overstatements in this README, and found core defects. Six of them were fixed in 0.2.2, each with a failing test first. It then reviewed that fix commit and caught four gaps (whitespace-only disclosure, posts approved before the release, non-atomic id reservation, two tests that passed without their guard), which were closed before the release, and what remains is listed under "Known issues". Neither review exercised the live Naver editor. In 0.2.3 a draft-mode run against the live editor found two selectors that would have typed the body into the title field and clicked a hidden 「예약 발행」 button. Both were fixed and the draft save was confirmed in Naver's temp-save list. In 0.2.4 further draft runs showed that line breaks were lost, that fast input dropped paragraphs and the first title character, and that the resume prompt was being confirmed instead of cancelled. All were fixed with a failing test first, and a 62-line draft was read back identical to the source. These are reviews and a few live draft runs on one account, not a warranty.
 
 ## License
 
