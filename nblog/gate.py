@@ -39,8 +39,10 @@ def evaluate(article: dict[str, Any], markdown: str, taste: Taste, titles: set[s
     if taste.require_compare and len(article.get("compare") or []) < taste.min_compare:
         reasons.append(f"비교표 {taste.min_compare}행 미만")
     if taste.require_disclosure:
-        disclosure = taste.disclosure or article.get("disclosure") or ""
-        if disclosure and disclosure not in markdown:
+        disclosure = str(taste.disclosure or article.get("disclosure") or "").strip()
+        if not disclosure:
+            reasons.append("제휴 고지문구가 비어 있음 (taste.json의 disclosure)")
+        elif disclosure not in markdown:
             reasons.append("제휴 고지문구 없음")
     if AI_LEAK.search(body):
         reasons.append("AI 자기소개 문장")

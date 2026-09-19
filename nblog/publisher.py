@@ -60,11 +60,15 @@ def screenshot_dir() -> Path:
     return path
 
 
-def min_hours() -> float:
-    try:
-        return float(os.environ.get("NBLOG_MIN_PUBLISH_HOURS") or "6")
-    except ValueError:
-        return 6.0
+def min_hours(pack_hours: float | None = None) -> float:
+    """환경변수 > 취향 팩 > 6시간. 프로세스 환경은 건드리지 않는다."""
+    raw = os.environ.get("NBLOG_MIN_PUBLISH_HOURS")
+    if raw:
+        try:
+            return float(raw)
+        except ValueError:
+            pass
+    return float(pack_hours) if pack_hours else 6.0
 
 
 def _state_path() -> Path:
@@ -98,15 +102,16 @@ def mark_published() -> None:
     )
 
 
-def check_rate_limit() -> None:
+def check_rate_limit(pack_hours: float | None = None) -> None:
     last = last_publish_at()
     if not last:
         return
-    wait_until = last + timedelta(hours=min_hours())
+    hours = min_hours(pack_hours)
+    wait_until = last + timedelta(hours=hours)
     now = datetime.now(timezone.utc).astimezone()
     if now < wait_until:
         raise PublishError(
-            f"발행 간격 제한: {min_hours():g}시간. {wait_until.isoformat(timespec='minutes')} 이후 가능"
+            f"발행 간격 제한: {hours:g}시간. {wait_until.isoformat(timespec='minutes')} 이후 가능"
         )
 
 
@@ -145,9 +150,9 @@ def publish(
 ) -> dict[str, Any]:
     """본문 텍스트를 에디터에 넣고 임시저장(기본) 또는 발행한다."""
     pack = taste or load_taste()
-    if pack.min_hours:
-        os.environ.setdefault("NBLOG_MIN_PUBLISH_HOURS", str(pack.min_hours))
-    check_rate_limit()
+    if public:
+        # 간격 제한은 공개 발행에만 건다. 임시저장은 막지 않는다.
+        check_rate_limit(pack.min_hours)
     blog_id = blog_id or os.environ.get("NAVER_BLOG_ID") or ""
     if not blog_id:
         raise PublishError("NAVER_BLOG_ID가 없습니다.")
@@ -178,9 +183,13 @@ def publish(
             else:
                 _click_first(page, _as_list(sel.get("save_draft")), "임시저장 버튼을 찾지 못했습니다.")
                 result_url = ""
-            page.screenshot(path=str(shot), full_page=True)
             if public:
                 mark_published()
+            try:
+                page.screenshot(path=str(shot), full_page=True)
+            except Exception:
+                # 스크린샷은 진단용. 실패해도 발행 결과를 뒤집지 않는다.
+                pass
             return {
                 "ok": True,
                 "mode": "public" if public else "naver_draft",
@@ -244,13 +253,19 @@ def _click_first(page: Any, selectors: list[str], error: str) -> None:
 
 
 def _click_publish(page: Any, publish: list[str], confirm: list[str]) -> str:
+    editor_url = page.url
     _click_first(page, publish, "발행 버튼을 찾지 못했습니다. selectors.json의 publish를 고치세요.")
     page.wait_for_timeout(1000)
-    for selector in confirm:
-        loc = page.locator(selector)
-        if loc.count() > 0:
-            loc.first.click()
-            page.wait_for_timeout(2000)
-            break
-    page.wait_for_timeout(2000)
-    return page.url
+    if confirm:
+        _click_first(
+            page,
+            confirm,
+            "발행 확인 버튼을 찾지 못했습니다. selectors.json의 publish_confirm을 고치세요.",
+        )
+    # 발행되면 에디터 주소를 떠난다. 그대로면 성공으로 기록하지 않는다.
+    for _ in range(15):
+        current = page.url
+        if current != editor_url and "postwrite" not in current.lower():
+            return current
+        page.wait_for_timeout(1000)
+    raise PublishError("발행 후에도 에디터 화면입니다. 발행되지 않았을 수 있습니다. 스크린샷을 확인하세요.")

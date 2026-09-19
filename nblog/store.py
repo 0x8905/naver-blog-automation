@@ -35,8 +35,18 @@ def out_dir() -> Path:
 
 
 def new_id(title: str) -> str:
+    """ID를 정하고 빈 파일로 선점한다. 같은 초·같은 슬러그면 번호를 붙인다."""
     stamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    return f"{stamp}-{slugify(title)}"
+    base = f"{stamp}-{slugify(title)}"
+    candidate, n = base, 1
+    while True:
+        try:
+            # "x" 모드는 원자적 생성. 동시에 도는 다른 draft와도 겹치지 않는다.
+            (posts_dir() / f"{candidate}.json").open("x").close()
+            return candidate
+        except FileExistsError:
+            n += 1
+            candidate = f"{base}-{n}"
 
 
 def save_post(post: dict[str, Any]) -> Path:

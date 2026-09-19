@@ -86,7 +86,7 @@ nblog publish <id>           # Naver draft
 nblog publish <id> --public  # explicit public post, 6h gap by default
 ```
 
-These are alternatives, not a sequence. After a draft save the post's status is `naver_draft`, and a later `--public` on the same id needs `--force` and creates a new post rather than resuming the saved draft.
+`publish` uses the selectors and interval of the pack the post was drafted with. `--taste <name>` overrides that. An approved post stays approved after a draft save, so `--public` on the same id works, but it types a **new** post rather than resuming the draft already saved in Naver.
 
 Core clamps one post per run. Taste cannot raise that.
 
@@ -124,12 +124,12 @@ Naver has no write API. `nblog publish` opens a real browser with Playwright, go
 
 Found in the release reviews and **not fixed yet**. They matter most if you automate.
 
-- `publish --public` does not verify the result. If the confirm button selector misses, the command still reports success, stamps the cooldown and marks the post `published`. A draft save is likewise reported after a fixed wait without checking that Naver stored it.
-- The public-post cooldown also blocks plain draft saves.
-- `publish` uses the **active** pack's selectors and interval, not the pack the post was drafted with.
-- `gates.require_disclosure: true` passes when the pack's `disclosure` text is empty.
-- Post ids have one-second resolution. Two drafts in the same second whose titles share the first 48 slug characters overwrite each other.
+- A draft save is reported after a fixed wait, without checking that Naver stored it.
+- `publish --public` counts as done only when the confirm button was clicked (if the pack lists one under `publish_confirm`; an empty list skips that step) and the browser left the editor URL within 15 seconds. That is a heuristic. It has not been checked against the live editor, so it may reject a real success or, less likely, accept a failure.
 - Login detection only recognises a top-level redirect to `nid.naver.com`.
+- The cooldown between public posts can be set to any value, including 0.
+
+Fixed in 0.2.2: success reported when the confirm button was missing, the cooldown blocking draft saves, `publish` ignoring the pack a post was drafted with, `require_disclosure` passing on empty text, same-second post id collisions.
 
 ### Going fully automatic
 
@@ -176,7 +176,7 @@ Built with several AI models in separate roles, directed by a human.
 | Final review before publishing | Claude Fable 5.1 |
 | Independent second review (0.2.1) | GPT Astra (`gpt-6-astra`, via Codex CLI) |
 
-The final review read every file in the tree, checked that no private infrastructure, personal identifiers or credentials were included, and ran the offline test suite. The second review was run read-only on the 0.2.1 changes and the whole tree. It confirmed the privacy check, corrected several overstatements in this README, and found the core defects listed under "Known issues". Neither review exercised the live Naver editor. They are reviews, not a warranty.
+The final review read every file in the tree, checked that no private infrastructure, personal identifiers or credentials were included, and ran the offline test suite. The second review was run read-only on the 0.2.1 changes and the whole tree. It confirmed the privacy check, corrected several overstatements in this README, and found core defects. Six of them were fixed in 0.2.2, each with a failing test first, and what remains is listed under "Known issues". Neither review exercised the live Naver editor. They are reviews, not a warranty.
 
 ## License
 

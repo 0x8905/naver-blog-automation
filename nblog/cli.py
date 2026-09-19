@@ -90,6 +90,7 @@ def _parser() -> argparse.ArgumentParser:
     pub = sub.add_parser("publish", help="본인 블로그 임시저장 또는 발행")
     pub.add_argument("id")
     pub.add_argument("--public", action="store_true")
+    pub.add_argument("--taste", default="", help="팩 이름. 없으면 글을 만든 팩")
     pub.add_argument("--force", action="store_true")
     pub.set_defaults(func=cmd_publish)
 
@@ -197,7 +198,7 @@ def cmd_approve(args: argparse.Namespace) -> int:
     if not gate.get("ok") and not args.force:
         print("게이트 미통과. --force로 강제 승인할 수 있습니다.", file=sys.stderr)
         return 2
-    update_status(args.id, "approved")
+    update_status(args.id, "approved", approved=True)
     print(f"approved  {args.id}")
     return 0
 
@@ -214,24 +215,39 @@ def cmd_publish(args: argparse.Namespace) -> int:
     from nblog.render import assemble_markdown
 
     post = load_post(args.id)
-    if post.get("status") not in {"approved", "published"} and not args.force:
+    approved = post.get("approved") or post.get("status") in {"approved", "published"}
+    if not approved and not args.force:
         print("먼저 nblog approve 로 검수 표시를 하세요.", file=sys.stderr)
         return 2
     markdown = assemble_markdown(post["article"])
     body = "\n".join(markdown.splitlines()[1:]).strip()
-    taste = load_taste()
+    taste = _publish_taste(args.taste, post)
     try:
         result = publish(post["title"], body, public=args.public, taste=taste)
     except PublishError as exc:
         print(f"오류: {exc}", file=sys.stderr)
         return 1
     status = "published" if args.public else "naver_draft"
-    update_status(args.id, status, published_url=result.get("url") or "")
+    # 0.2.1 이전에 승인된 글도 임시저장 뒤 승인 상태를 잃지 않도록 남긴다.
+    update_status(args.id, status, published_url=result.get("url") or "", approved=bool(approved))
     print(f"{status}  {args.id}")
     if result.get("url"):
         print(result["url"])
     print(f"screenshot {result.get('screenshot')}")
     return 0
+
+
+def _publish_taste(flag: str, post: dict):
+    """--taste > 글을 만든 팩 > active. 만든 팩이 지워졌으면 active로 내려간다."""
+    if flag:
+        return load_taste(flag)
+    made_with = str(post.get("profile") or "")
+    if made_with:
+        try:
+            return load_taste(made_with)
+        except (FileNotFoundError, ValueError):
+            print(f"경고: 팩 '{made_with}' 없음. active 팩을 씁니다.", file=sys.stderr)
+    return load_taste()
 
 
 def cmd_doctor(_args: argparse.Namespace) -> int:
