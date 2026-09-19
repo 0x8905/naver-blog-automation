@@ -132,6 +132,7 @@ def login() -> None:
         page = context.pages[0] if context.pages else context.new_page()
         page.goto(start, wait_until="domcontentloaded")
         print("브라우저에서 네이버에 로그인한 뒤 이 터미널에서 Enter를 누르세요.")
+        print("로그인할 때 「로그인 상태 유지」를 체크하세요. 안 하면 창을 닫는 순간 로그인이 풀립니다.")
         print("비밀번호는 .env에 넣지 마세요.")
         try:
             input()

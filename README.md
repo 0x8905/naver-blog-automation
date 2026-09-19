@@ -79,6 +79,8 @@ NAVER_CLIENT_SECRET=
 
 Do not put a password in `.env`. Run `nblog login` and sign in yourself. This tool never asks for or reads your password. Whether the browser profile remembers it is up to what you click in the browser.
 
+**Tick 「로그인 상태 유지」 (keep me signed in) on the Naver login page.** Without it Naver's auth cookies last only while that window is open, so they are gone as soon as `nblog login` closes the browser, and `publish` lands on the login page.
+
 ```
 NAVER_BLOG_ID=
 nblog login
@@ -115,10 +117,10 @@ Naver has no write API. `nblog publish` opens a real browser with Playwright, go
 
 ### Known limits
 
-- The body is inserted as plain text, so `##`, tables and `**bold**` arrive as literal Markdown characters. `data/out/<id>.html` is there for manual paste when you want formatting.
+- The body is inserted as plain text, so `##`, tables and `**bold**` arrive as literal Markdown characters. Line breaks are lost as well: the whole body lands in the editor as one paragraph. `data/out/<id>.html` is there for manual paste when you want formatting.
 - Images are not uploaded. `image_prompts` are text suggestions only.
 - The browser is headed (`headless=False`). It needs a logged-in desktop session (or `xvfb` on Linux), not a bare server.
-- Tests are offline. The editor path (`nblog publish`) is **not** covered by them and was not exercised against the live Naver editor in the release review. Selectors are best-effort and Naver changes the editor without notice. If the editor is rendered inside an iframe on your account, page-level selectors will not match. Run `nblog publish <id>` in draft mode and look at `screenshots/` before you trust it.
+- Tests are offline. The editor path was checked once against the live editor on 2026-09-19 (desktop Chrome, `/postwrite`, draft mode): the editor is not inside an iframe, the title and body land in the right fields, and the draft appears in Naver's temp-save list. `--public` and the publish confirm dialog have **not** been exercised. Naver changes the editor without notice, so run `nblog publish <id>` in draft mode and look at `screenshots/` before you trust it.
 
 ### Known issues
 
@@ -157,7 +159,7 @@ What you take on when you do that:
 
 Agents: build this loop **outside** `nblog/` (a script in your own directory or in `taste/<name>/`). Do not add a scheduler, a retry loop, or an auto-approve path to the core.
 
-한국어 요약: 네이버에는 글쓰기 API가 없어서 Playwright로 실제 브라우저를 조작합니다. 현재는 초안 작성과 검수, 에디터 입력까지 자동이고, 로그인·승인(`approve`)·공개 발행(`--public`)·키워드 선정·스케줄링은 의도적으로 수동입니다. 완전 자동으로 운용하려면 위 셸 스크립트를 본인의 스케줄러에 등록하면 되지만, 본문이 서식 없는 텍스트로 입력되는 점, 이미지가 업로드되지 않는 점, 세션이 만료되면 다시 로그인해야 하는 점, 실제 에디터에서는 아직 검증되지 않았다는 점을 먼저 확인하시기 바랍니다.
+한국어 요약: 네이버에는 글쓰기 API가 없어서 Playwright로 실제 브라우저를 조작합니다. 현재는 초안 작성과 검수, 에디터 입력까지 자동이고, 로그인·승인(`approve`)·공개 발행(`--public`)·키워드 선정·스케줄링은 의도적으로 수동입니다. 완전 자동으로 운용하려면 위 셸 스크립트를 본인의 스케줄러에 등록하면 되지만, 본문이 줄바꿈과 서식 없이 한 문단으로 입력되는 점, 이미지가 업로드되지 않는 점, 세션이 만료되면 다시 로그인해야 하는 점(로그인할 때 「로그인 상태 유지」를 반드시 체크해야 합니다), 실제 에디터에서는 임시저장만 확인했고 공개 발행은 아직 확인하지 않았다는 점을 먼저 확인하시기 바랍니다.
 
 ## Tests
 
@@ -175,8 +177,9 @@ Built with several AI models in separate roles, directed by a human.
 | Implementation | Grok 4.6 (xhigh) |
 | Final review before publishing | Claude Fable 5.1 |
 | Independent second review (0.2.1, 0.2.2) | GPT Astra (`gpt-6-astra`, via Codex CLI) |
+| Live editor check, selector fixes (0.2.3) | Claude Opus 5 |
 
-The final review read every file in the tree, checked that no private infrastructure, personal identifiers or credentials were included, and ran the offline test suite. The second review was run read-only on the 0.2.1 changes and the whole tree. It confirmed the privacy check, corrected several overstatements in this README, and found core defects. Six of them were fixed in 0.2.2, each with a failing test first. It then reviewed that fix commit and caught four gaps (whitespace-only disclosure, posts approved before the release, non-atomic id reservation, two tests that passed without their guard), which were closed before the release, and what remains is listed under "Known issues". Neither review exercised the live Naver editor. They are reviews, not a warranty.
+The final review read every file in the tree, checked that no private infrastructure, personal identifiers or credentials were included, and ran the offline test suite. The second review was run read-only on the 0.2.1 changes and the whole tree. It confirmed the privacy check, corrected several overstatements in this README, and found core defects. Six of them were fixed in 0.2.2, each with a failing test first. It then reviewed that fix commit and caught four gaps (whitespace-only disclosure, posts approved before the release, non-atomic id reservation, two tests that passed without their guard), which were closed before the release, and what remains is listed under "Known issues". Neither review exercised the live Naver editor. In 0.2.3 a draft-mode run against the live editor found two selectors that would have typed the body into the title field and clicked a hidden 「예약 발행」 button. Both were fixed and the draft save was confirmed in Naver's temp-save list. These are reviews and one live check, not a warranty.
 
 ## License
 
