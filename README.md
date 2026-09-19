@@ -174,9 +174,9 @@ Built with several AI models in separate roles, directed by a human.
 | Design advice | Kimi K3, GLM-5.3 Flash, DeepSeek 4.1 Flash |
 | Implementation | Grok 4.6 (xhigh) |
 | Final review before publishing | Claude Fable 5.1 |
-| Independent second review (0.2.1) | GPT Astra (`gpt-6-astra`, via Codex CLI) |
+| Independent second review (0.2.1, 0.2.2) | GPT Astra (`gpt-6-astra`, via Codex CLI) |
 
-The final review read every file in the tree, checked that no private infrastructure, personal identifiers or credentials were included, and ran the offline test suite. The second review was run read-only on the 0.2.1 changes and the whole tree. It confirmed the privacy check, corrected several overstatements in this README, and found core defects. Six of them were fixed in 0.2.2, each with a failing test first, and what remains is listed under "Known issues". Neither review exercised the live Naver editor. They are reviews, not a warranty.
+The final review read every file in the tree, checked that no private infrastructure, personal identifiers or credentials were included, and ran the offline test suite. The second review was run read-only on the 0.2.1 changes and the whole tree. It confirmed the privacy check, corrected several overstatements in this README, and found core defects. Six of them were fixed in 0.2.2, each with a failing test first. It then reviewed that fix commit and caught four gaps (whitespace-only disclosure, posts approved before the release, non-atomic id reservation, two tests that passed without their guard), which were closed before the release, and what remains is listed under "Known issues". Neither review exercised the live Naver editor. They are reviews, not a warranty.
 
 ## License
 
